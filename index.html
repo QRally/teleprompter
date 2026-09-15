@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Pace Note Prompter v1.1</title>
+  <style>
+    :root {
+      --bg-color: #000000;
+      --card-bg: #121212;
+      --border-color: #333333;
+      --text-main: #FFFFFF;
+      --accent-yellow: #FFE600;
+      --accent-green: #00FF66;
+      --accent-red: #FF3333;
+      --accent-cyan: #00E5FF;
+    }
+
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    body, html {
+      width: 100%;
+      height: 100%;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      overflow: hidden;
+    }
+
+    /* SETUP VIEW */
+    #setup-view {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      padding: 16px;
+      gap: 12px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    h1 {
+      font-size: 1.2rem;
+      letter-spacing: 1px;
+      color: var(--accent-yellow);
+      text-transform: uppercase;
+    }
+
+    textarea {
+      flex: 1;
+      width: 100%;
+      background-color: var(--card-bg);
+      border: 1px solid var(--border-color);
+      color: var(--accent-green);
+      font-family: monospace;
+      font-size: 1.1rem;
+      padding: 12px;
+      border-radius: 8px;
+      resize: none;
+      outline: none;
+    }
+
+    .file-input-wrapper {
+      position: relative;
+      display: inline-block;
+      width: 100%;
+    }
+
+    input[type="file"] {
+      display: none;
+    }
+
+    .btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px 20px;
+      font-size: 1.1rem;
+      font-weight: bold;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .btn:active {
+      opacity: 0.8;
+    }
+
+    .btn-secondary {
+      background-color: #222;
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+      width: 100%;
+    }
+
+    .btn-primary {
+      background-color: var(--accent-yellow);
+      color: #000;
+    }
+
+    /* SCROLL DISPLAY VIEW */
+    #prompt-view {
+      display: none;
+      flex-direction: column;
+      height: 100%;
+      position: relative;
+    }
+
+    #scroll-container {
+      flex: 1;
+      overflow-y: scroll;
+      padding: 40vh 20px 50vh 20px;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+    #scroll-container::-webkit-scrollbar {
+      display: none;
+    }
+
+    .pace-line {
+      font-size: 2.8rem;
+      font-weight: 900;
+      line-height: 1.4;
+      text-align: center;
+      padding: 12px 0;
+      letter-spacing: 1px;
+      color: var(--text-main);
+    }
+
+    /* Syntax Highlighting */
+    .note-l { color: var(--accent-cyan); }
+    .note-r { color: var(--accent-red); }
+    .note-num { color: var(--accent-yellow); font-size: 3.2rem; }
+    .note-hazard { color: #FF00FF; background: #330033; padding: 2px 8px; border-radius: 4px; }
+
+    /* HUD OVERLAY CONTROLS */
+    .hud-header {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      background: linear-gradient(to bottom, rgba(0,0,0,0.95), rgba(0,0,0,0));
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    .hud-header * {
+      pointer-events: auto;
+    }
+
+    .speed-badge {
+      font-family: monospace;
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: var(--accent-green);
+      background: rgba(0,0,0,0.7);
+      padding: 6px 12px;
+      border-radius: 6px;
+      border: 1px solid #333;
+    }
+
+    .hud-controls {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1.8fr 1fr 1fr;
+      gap: 6px;
+      padding: 12px;
+      height: 90px;
+      background: rgba(0, 0, 0, 0.95);
+      border-top: 1px solid var(--border-color);
+      z-index: 10;
+    }
+
+    .ctrl-btn {
+      background: #1e1e1e;
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      font-size: 1.8rem;
+      font-weight: bold;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .ctrl-btn:active {
+      background: #444;
+    }
+
+    .ctrl-play {
+      background: var(--accent-yellow);
+      color: #000;
+      font-size: 1.3rem;
+      letter-spacing: 1px;
+    }
+
+    /* Screen Tap Zone */
+    #tap-zone {
+      position: absolute;
+      top: 60px;
+      bottom: 90px;
+      left: 0;
+      right: 0;
+      z-index: 5;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- SETUP SCREEN -->
+  <div id="setup-view">
+    <header>
+      <h1>RECCE PROMPTER v1.1</h1>
+    </header>
+
+    <div class="file-input-wrapper">
+      <button class="btn btn-secondary" onclick="document.getElementById('file-input').click()">📁 Load .TXT File</button>
+      <input type="file" id="file-input" accept=".txt">
+    </div>
+
+    <textarea id="note-input" placeholder="Paste pace notes here...
+
+Example:
+100  R5 into L4 tightens
+50  ! H-R-Pin
+200  Flat Crest
+50  L2 over crest / cuts"></textarea>
+
+    <button class="btn btn-primary" id="start-btn">Start Prompting</button>
+  </div>
+
+  <!-- PROMPTER SCREEN -->
+  <div id="prompt-view">
+    <div class="hud-header">
+      <button class="btn btn-secondary" style="padding: 8px 14px; font-size: 0.9rem; width: auto;" id="back-btn">← Exit</button>
+      <div class="speed-badge" id="speed-display">1.5 px/f</div>
+    </div>
+
+    <div id="tap-zone"></div>
+
+    <div id="scroll-container">
+      <div id="lines-wrapper"></div>
+    </div>
+
+    <div class="hud-controls">
+      <button class="ctrl-btn" id="rewind-btn" title="Rewind">≪</button>
+      <button class="ctrl-btn" id="slower-btn" title="Slower">-</button>
+      <button class="ctrl-btn ctrl-play" id="play-btn">PAUSE</button>
+      <button class="ctrl-btn" id="faster-btn" title="Faster">+</button>
+      <button class="ctrl-btn" id="ff-btn" title="Fast Forward">≫</button>
+    </div>
+  </div>
+
+  <script>
+    let scrollSpeed = 1.5;
+    let isScrolling = false;
+    let animFrameId = null;
+    let wakeLock = null;
+
+    const setupView = document.getElementById('setup-view');
+    const promptView = document.getElementById('prompt-view');
+    const noteInput = document.getElementById('note-input');
+    const fileInput = document.getElementById('file-input');
+    const startBtn = document.getElementById('start-btn');
+    const backBtn = document.getElementById('back-btn');
+    const scrollContainer = document.getElementById('scroll-container');
+    const linesWrapper = document.getElementById('lines-wrapper');
+    const speedDisplay = document.getElementById('speed-display');
+    const playBtn = document.getElementById('play-btn');
+    const tapZone = document.getElementById('tap-zone');
+
+    const slowerBtn = document.getElementById('slower-btn');
+    const fasterBtn = document.getElementById('faster-btn');
+    const rewindBtn = document.getElementById('rewind-btn');
+    const ffBtn = document.getElementById('ff-btn');
+
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        noteInput.value = evt.target.result;
+      };
+      reader.readAsText(file);
+    });
+
+    function parseNotes(text) {
+      linesWrapper.innerHTML = '';
+      const lines = text.split('\n');
+
+      lines.forEach(line => {
+        if (!line.trim()) return;
+
+        let formatted = line
+          .replace(/\b([L])(\d)?\b/gi, '<span class="note-l">$1$2</span>')
+          .replace(/\b([R])(\d)?\b/gi, '<span class="note-r">$1$2</span>')
+          .replace(/\b([1-6])\b/g, '<span class="note-num">$1</span>')
+          .replace(/(!{1,2})/g, '<span class="note-hazard">$1</span>');
+
+        const div = document.createElement('div');
+        div.className = 'pace-line';
+        div.innerHTML = formatted;
+        linesWrapper.appendChild(div);
+      });
+    }
+
+    function scrollStep() {
+      if (!isScrolling) return;
+
+      scrollContainer.scrollTop += scrollSpeed;
+
+      if (scrollContainer.scrollTop + scrollContainer.clientHeight < scrollContainer.scrollHeight) {
+        animFrameId = requestAnimationFrame(scrollStep);
+      } else {
+        stopScroll();
+      }
+    }
+
+    async function toggleScroll() {
+      isScrolling = !isScrolling;
+
+      if (isScrolling) {
+        playBtn.innerText = 'PAUSE';
+        playBtn.style.backgroundColor = 'var(--accent-yellow)';
+        requestWakeLock();
+        animFrameId = requestAnimationFrame(scrollStep);
+      } else {
+        stopScroll();
+      }
+    }
+
+    function stopScroll() {
+      isScrolling = false;
+      playBtn.innerText = 'PLAY';
+      playBtn.style.backgroundColor = 'var(--accent-green)';
+      if (animFrameId) cancelAnimationFrame(animFrameId);
+      releaseWakeLock();
+    }
+
+    function adjustSpeed(delta) {
+      scrollSpeed = Math.max(0.2, parseFloat((scrollSpeed + delta).toFixed(1)));
+      speedDisplay.innerText = `${scrollSpeed.toFixed(1)} px/f`;
+    }
+
+    function jumpScroll(amount) {
+      scrollContainer.scrollTop += amount;
+    }
+
+    async function requestWakeLock() {
+      if ('wakeLock' in navigator) {
+        try {
+          wakeLock = await navigator.wakeLock.request('screen');
+        } catch (err) {
+          console.log('Wake Lock failed:', err.message);
+        }
+      }
+    }
+
+    function releaseWakeLock() {
+      if (wakeLock) {
+        wakeLock.release();
+        wakeLock = null;
+      }
+    }
+
+    startBtn.addEventListener('click', () => {
+      const text = noteInput.value.trim();
+      if (!text) return alert('Please enter or import pace notes first.');
+      parseNotes(text);
+      setupView.style.display = 'none';
+      promptView.style.display = 'flex';
+      scrollContainer.scrollTop = 0;
+      toggleScroll();
+    });
+
+    backBtn.addEventListener('click', () => {
+      stopScroll();
+      promptView.style.display = 'none';
+      setupView.style.display = 'flex';
+    });
+
+    playBtn.addEventListener('click', toggleScroll);
+    tapZone.addEventListener('click', toggleScroll);
+    slowerBtn.addEventListener('click', () => adjustSpeed(-0.3));
+    fasterBtn.addEventListener('click', () => adjustSpeed(0.3));
+    rewindBtn.addEventListener('click', () => jumpScroll(-200));
+    ffBtn.addEventListener('click', () => jumpScroll(200));
+
+    window.addEventListener('keydown', (e) => {
+      if (promptView.style.display === 'flex') {
+        if (e.code === 'Space') {
+          e.preventDefault();
+          toggleScroll();
+        } else if (e.code === 'ArrowUp') {
+          adjustSpeed(0.3);
+        } else if (e.code === 'ArrowDown') {
+          adjustSpeed(-0.3);
+        } else if (e.code === 'ArrowLeft') {
+          jumpScroll(-150);
+        } else if (e.code === 'ArrowRight') {
+          jumpScroll(150);
+        }
+      }
+    });
+  </script>
+</body>
+</html>
