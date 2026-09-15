@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Pace Note Prompter</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Pace Note Prompter v1.3</title>
   <style>
     :root {
       --bg-color: #000000;
@@ -26,7 +26,7 @@
 
     body, html {
       width: 100vw;
-      height: 100vh;
+      height: 100dvh;
       background-color: var(--bg-color);
       color: var(--text-main);
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -37,9 +37,11 @@
     #setup-view {
       display: flex;
       flex-direction: column;
-      height: 100%;
+      height: 100dvh;
       padding: 16px;
+      padding-bottom: max(16px, env(safe-area-inset-bottom));
       gap: 12px;
+      overflow-y: auto;
     }
 
     header {
@@ -59,6 +61,7 @@
 
     textarea {
       flex: 1;
+      min-height: 250px;
       width: 100%;
       background-color: var(--card-bg);
       border: 1px solid var(--border-color);
@@ -93,6 +96,7 @@
       cursor: pointer;
       text-transform: uppercase;
       letter-spacing: 0.5px;
+      min-height: 52px;
     }
 
     .btn:active {
@@ -115,7 +119,7 @@
     #prompt-view {
       display: none;
       flex-direction: column;
-      height: 100vh;
+      height: 100dvh;
       width: 100vw;
       position: relative;
     }
@@ -156,7 +160,7 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 12px 16px;
+      padding: calc(12px + env(safe-area-inset-top)) 16px 12px 16px;
       background: linear-gradient(to bottom, rgba(0,0,0,0.95), rgba(0,0,0,0));
       pointer-events: none;
       z-index: 10;
@@ -185,8 +189,9 @@
       display: grid;
       grid-template-columns: 1fr 1fr 1.8fr 1fr 1fr;
       gap: 8px;
-      padding: 12px;
-      height: 90px;
+      padding: 10px 12px calc(10px + env(safe-area-inset-bottom)) 12px;
+      height: auto;
+      min-height: 80px;
       background: #000000;
       border-top: 2px solid var(--border-color);
       z-index: 20;
@@ -203,6 +208,7 @@
       align-items: center;
       justify-content: center;
       touch-action: manipulation;
+      min-height: 56px;
     }
 
     .ctrl-btn:active {
@@ -219,7 +225,7 @@
     #tap-zone {
       position: absolute;
       top: 60px;
-      bottom: 90px;
+      bottom: 100px;
       left: 0;
       right: 0;
       z-index: 5;
@@ -231,7 +237,7 @@
   <!-- SETUP SCREEN -->
   <div id="setup-view">
     <header>
-      <h1>RECCE PROMPTER v1.2</h1>
+      <h1>RECCE PROMPTER v1.3</h1>
     </header>
 
     <div class="file-input-wrapper">
@@ -239,13 +245,7 @@
       <input type="file" id="file-input" accept=".txt">
     </div>
 
-    <textarea id="note-input" placeholder="Paste pace notes here...
-
-Example:
-100  R5 into L4 tightens
-50  ! H-R-Pin
-200  Flat Crest
-50  L2 over crest / cuts"></textarea>
+    <textarea id="note-input" placeholder="Paste pace notes here..."></textarea>
 
     <button class="btn btn-primary" id="start-btn">Start Prompting</button>
   </div>
@@ -253,7 +253,7 @@ Example:
   <!-- PROMPTER SCREEN -->
   <div id="prompt-view">
     <div class="hud-header">
-      <button class="btn btn-secondary" style="padding: 8px 14px; font-size: 0.9rem; width: auto;" id="back-btn">← Exit</button>
+      <button class="btn btn-secondary" style="padding: 8px 14px; font-size: 0.9rem; width: auto; min-height: 36px;" id="back-btn">← Exit</button>
       <div class="speed-badge" id="speed-display">1.5 px/f</div>
     </div>
 
