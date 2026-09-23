@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Pace Note Prompter v1.3</title>
+  <title>Pace Note Prompter v1.4</title>
   <style>
     :root {
       --bg-color: #000000;
@@ -124,10 +124,26 @@
       position: relative;
     }
 
+    /* Fixed Target Focus Box */
+    #focus-band {
+      position: absolute;
+      top: 45%;
+      left: 12px;
+      right: 12px;
+      height: 90px;
+      transform: translateY(-50%);
+      border-top: 2px solid var(--accent-yellow);
+      border-bottom: 2px solid var(--accent-yellow);
+      background: rgba(255, 230, 0, 0.08);
+      border-radius: 8px;
+      pointer-events: none;
+      z-index: 8;
+    }
+
     #scroll-container {
       flex: 1;
       overflow-y: scroll;
-      padding: 40vh 20px 50vh 20px;
+      padding: 45vh 20px 50vh 20px;
       scrollbar-width: none;
       -ms-overflow-style: none;
     }
@@ -140,9 +156,17 @@
       font-weight: 900;
       line-height: 1.4;
       text-align: center;
-      padding: 12px 0;
+      padding: 14px 0;
       letter-spacing: 1px;
       color: var(--text-main);
+      opacity: 0.25; /* Dimmed by default */
+      transition: opacity 0.15s ease, transform 0.15s ease;
+    }
+
+    /* Active Line Highlight State */
+    .pace-line.in-focus {
+      opacity: 1.0;
+      transform: scale(1.06);
     }
 
     /* Syntax Highlighting */
@@ -237,7 +261,7 @@
   <!-- SETUP SCREEN -->
   <div id="setup-view">
     <header>
-      <h1>RECCE PROMPTER v1.3</h1>
+      <h1>RECCE PROMPTER v1.4</h1>
     </header>
 
     <div class="file-input-wrapper">
@@ -256,6 +280,9 @@
       <button class="btn btn-secondary" style="padding: 8px 14px; font-size: 0.9rem; width: auto; min-height: 36px;" id="back-btn">← Exit</button>
       <div class="speed-badge" id="speed-display">1.5 px/f</div>
     </div>
+
+    <!-- Center Line Focus Anchor -->
+    <div id="focus-band"></div>
 
     <div id="tap-zone"></div>
 
@@ -325,10 +352,38 @@
       });
     }
 
+    // Dynamic Focus Line Engine
+    function updateFocusLine() {
+      const containerRect = scrollContainer.getBoundingClientRect();
+      const focusTargetY = containerRect.top + (containerRect.height * 0.45); // Aligned with #focus-band
+
+      const lines = linesWrapper.getElementsByClassName('pace-line');
+      let closestLine = null;
+      let minDistance = Infinity;
+
+      Array.from(lines).forEach(line => {
+        const lineRect = line.getBoundingClientRect();
+        const lineCenter = lineRect.top + (lineRect.height / 2);
+        const distance = Math.abs(focusTargetY - lineCenter);
+
+        line.classList.remove('in-focus');
+
+        if (distance < minDistance) {
+          minDistance = distance;
+          closestLine = line;
+        }
+      });
+
+      if (closestLine) {
+        closestLine.classList.add('in-focus');
+      }
+    }
+
     function scrollStep() {
       if (!isScrolling) return;
 
       scrollContainer.scrollTop += scrollSpeed;
+      updateFocusLine();
 
       if (scrollContainer.scrollTop + scrollContainer.clientHeight < scrollContainer.scrollHeight) {
         animFrameId = requestAnimationFrame(scrollStep);
@@ -356,6 +411,7 @@
       playBtn.style.backgroundColor = 'var(--accent-green)';
       if (animFrameId) cancelAnimationFrame(animFrameId);
       releaseWakeLock();
+      updateFocusLine();
     }
 
     function adjustSpeed(delta) {
@@ -365,6 +421,7 @@
 
     function jumpScroll(amount) {
       scrollContainer.scrollTop += amount;
+      updateFocusLine();
     }
 
     async function requestWakeLock() {
@@ -384,6 +441,11 @@
       }
     }
 
+    // Manual Drag / Scroll Event Sync
+    scrollContainer.addEventListener('scroll', () => {
+      if (!isScrolling) updateFocusLine();
+    });
+
     startBtn.addEventListener('click', () => {
       const text = noteInput.value.trim();
       if (!text) return alert('Please enter or import pace notes first.');
@@ -391,6 +453,7 @@
       setupView.style.display = 'none';
       promptView.style.display = 'flex';
       scrollContainer.scrollTop = 0;
+      updateFocusLine();
       toggleScroll();
     });
 
